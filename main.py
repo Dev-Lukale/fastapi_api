@@ -1,4 +1,4 @@
-from fastapi import FastAPI,Request,HTTPException,status
+from fastapi import FastAPI,Request,HTTPException,status,Depends
 from tortoise.contrib.fastapi import register_tortoise
 from tortoise import models
 from models import (User, Business, Product, user_pydantic, user_pydanticIn, 
@@ -6,6 +6,15 @@ from models import (User, Business, Product, user_pydantic, user_pydanticIn,
                     business_pydanticIn, user_pydanticOut)
 from authUtil import *
 from mail import *
+
+# authentication
+from authUtil import*
+import jwt
+from dotenv import dotenv_values
+from fastapi.security import (
+    OAuth2PasswordBearer,
+    OAuth2PasswordRequestForm
+)
 
 #signals
 from tortoise.signals import post_save
@@ -17,6 +26,17 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 app = FastAPI()
+
+# authorization configs-- route to get the token url==/token
+oath2_scheme = OAuth2PasswordBearer(tokenUrl = 'token')
+
+
+
+# password helper functions
+@app.post('/token')
+async def generate_token(request_form: OAuth2PasswordRequestForm = Depends()):
+    token = await token_generator(request_form.username, request_form.password)
+    return {'access_token' : token, 'token_type' : 'bearer'}
 
 @post_save(User)
 async def create_business(
